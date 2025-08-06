@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { bedrockClient } from './aws-config';
 import './Chatbot.css';
 
 function Chatbot() {
+  const chatWindowRef = useRef(null);
   // Load initial state from localStorage or use defaults
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('chatbot-messages');
@@ -33,6 +34,13 @@ function Chatbot() {
     const saved = localStorage.getItem('chatbot-guided-mode');
     return saved ? JSON.parse(saved) : false;
   });
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
@@ -144,7 +152,7 @@ function Chatbot() {
         <p>Ask me about programs, careers, and transfer options</p>
       </header>
 
-      <div className="chat-window">
+      <div className="chat-window" ref={chatWindowRef}>
         {messages.map((msg, index) => (
           <div key={index} className={`message ${msg.sender}`}>
             <div className="message-bubble">
@@ -179,7 +187,7 @@ function Chatbot() {
           }}
           className="clear-button"
         >
-          Clear Chat
+          Start Over
         </button>
       </div>
     </div>
