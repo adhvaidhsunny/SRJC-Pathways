@@ -1,4 +1,4 @@
-#🎓 SRJC Pathway Explorer
+##**🎓 SRJC Pathway Explorer**##
 SRJC Pathway Explorer is a step-by-step tool designed to help students at Santa Rosa Junior College discover their best-fit academic path, built at the AWS Cal Poly SLO AI Camp 2025
 
 This project uses a series of structured questions with interactive elements to:
