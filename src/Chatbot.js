@@ -61,6 +61,15 @@ function Chatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [typingMessage, setTypingMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // Hardcoded pathway data
+  const pathwayData = [
+    {'Pathway Name': 'Skills & Service (Tools & Trades?)', 'RIASEC Code': 'R'},
+    {'Pathway Name': 'Research & Discovery', 'RIASEC Code': 'I'}, 
+    {'Pathway Name': 'Vision & Expression', 'RIASEC Code': 'A'},
+    {'Pathway Name': 'Connection & Care', 'RIASEC Code': 'S'},
+    {'Pathway Name': 'Leadership & Innovation', 'RIASEC Code': 'E'},
+    {'Pathway Name': 'Systems & Solutions', 'RIASEC Code': 'C'}
+  ];
 
 
   // Auto-scroll to bottom when messages change
@@ -164,7 +173,7 @@ function Chatbot() {
           prompt += `Now respond to the user's last answer, then ask: "${nextQuestion}"`;
         } else {
 
-          prompt += `Now respond to the user's last answer and wrap up the conversation. Suggest they explore programs at SRJC based on their interests.`;
+          prompt += `Now respond to the user's last answer and wrap up the conversation briefly.`;
           
           // Get final scores and calculate top 3 RIASEC code
           try {
@@ -177,24 +186,43 @@ function Chatbot() {
             const scores = result.Item?.riasecScores || {};
             console.log('Scores:', scores);
             
-            const sortedScores = Object.entries(scores)
+            const sortedLetters = Object.entries(scores)
               .map(([letter, value]) => [letter, typeof value === 'object' ? parseInt(value.N) : value])
               .sort(([,a], [,b]) => b - a)
               .slice(0, 3)
-              .map(([letter]) => letter)
-              .join('');
+              .map(([letter]) => letter);
             
+            const sortedScores = sortedLetters.join('');
             console.log('Final RIASEC Code:', sortedScores);
             
-            // Store the complete record with score
+            // Find matching pathways from data
+            const matchedPathways = sortedLetters.map(letter => {
+              const pathway = pathwayData.find(row => 
+                (row['RIASEC Code'] && row['RIASEC Code'].includes(letter))
+              );
+              return pathway ? pathway['Pathway Name'] : `${letter} Pathway`;
+            });
+            
+            console.log('Matched pathways:', matchedPathways);
+            
+            console.log('Matched Pathways:', matchedPathways);
+            
+            // Store the complete record with score and pathways
             await docClient.send(new PutCommand({
               TableName: 'SRJCPathwaysResponses',
               Item: {
                 ...result.Item,
                 score: sortedScores,
+                pathways: matchedPathways,
                 timestamp: new Date().toISOString()
               }
             }));
+            
+            // Add pathway results to the conversation
+            const pathwayMessage = `Here are your results:\nRIASEC Code: ${sortedScores}\n\nYour personalized top 3 SRJC pathways:\n1. ${matchedPathways[0]}\n2. ${matchedPathways[1]}\n3. ${matchedPathways[2]} \n\n Your top selected certificates`;
+            setTimeout(() => {
+              setMessages(prev => [...prev, { text: pathwayMessage, sender: 'bot' }]);
+            }, 2000);
             
             // alert('Score stored: ' + sortedScores);
 
