@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import Chatbot from './Chatbot';
+import Landing from './Landing';
 
 function Home() {
   return (
@@ -61,6 +62,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/landing" element={<Landing />} />
       </Routes>
     </Router>
   );
