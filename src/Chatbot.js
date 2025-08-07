@@ -15,35 +15,36 @@ function Chatbot() {
   });
   const [input, setInput] = useState('');
 
-  const riasecLetters = ['A', 'A', 'E', 'E', 'E', 'S', 'R', 'R', 'I', 'C', 'I', 'S', 'E', 'C', 'I', 'R', 'C', 'R', 'S', 'C'];
+  const riasecLetters = ['A', 'A', 'E', ]; //'R', 'R', 'I', 'C', 'I', 'S', 'E', 'C', 'I', 'R', 'C', 'R', 'S', 'C', 'E', 'E', 'S',
   
   //change this to pull from s3
   const questions = [
     "From 1-5. Do you enjoy writing, making music, or expressing yourself through art or media?",
     "From 1-5. Do you enjoy designing logos, graphics, or visual layouts for digital or print media?",
     "From 1-5. Would you enjoy writing fiction, poetry, or screenplays in your free time?",
-    "From 1-5. Do you like convincing others of your point of view or debating ideas?",
-    "From 1-5. Do you enjoy solving puzzles, riddles, or complex problems just for fun?",
-    "From 1-5. Do you enjoy performing in front of others—like music, dance, or theater?",
-    "From 1-5. Would you like to run or grow your own business one day?",
-    "From 1-5. Are you interested in marketing, selling, or promoting new ideas or products?",
-    "From 1-5. Are you interested in law, public safety, or advocating for others in legal situations?",
-    "From 1-5. Do you enjoy teaching, coaching, or guiding others to learn something new?",
-    "From 1-5. Do you like hands-on projects like building furniture, laying tile, or designing physical spaces?",
-    "From 1-5. Do you enjoy building, repairing, or operating tools and equipment?",
-    "From 1-5. Are you curious about programming, using computers, or working with technology?",
-    "From 1-5. Do you prefer clerical tasks like sorting mail, keeping records, or proofreading documents?",
-    "From 1-5. Are you interested in doing science experiments or figuring out how things in nature work?",
-    "From 1-5. Do you like helping people solve emotional or personal problems?",
-    "From 1-5. Do you like managing a business, leading teams, or making important decisions?",
-    "From 1-5. Do you enjoy working with numbers, keeping records, or handling financial tasks?",
-    "From 1-5. Would you enjoy working in a laboratory setting doing medical or scientific testing?",
-    "From 1-5. Would you enjoy working outdoors, driving, or doing physical tasks like firefighting?",
-    "From 1-5. Do you like organizing inventory or working in retail or warehouse environments?",
-    "From 1-5. Are you interested in taking care of animals or protecting the environment?",
-    "From 1-5. Do you enjoy giving advice, mentoring others, or offering guidance on life or careers?",
-    "From 1-5. Do you like checking the quality of things or making sure products meet standards?"
   ];
+
+  // "From 1-5. Do you like convincing others of your point of view or debating ideas?",
+  // "From 1-5. Do you enjoy solving puzzles, riddles, or complex problems just for fun?",
+  // "From 1-5. Do you enjoy performing in front of others—like music, dance, or theater?",
+  // "From 1-5. Would you like to run or grow your own business one day?",
+  //   "From 1-5. Are you interested in marketing, selling, or promoting new ideas or products?",
+  //   "From 1-5. Are you interested in law, public safety, or advocating for others in legal situations?",
+  //   "From 1-5. Do you enjoy teaching, coaching, or guiding others to learn something new?",
+  //   "From 1-5. Do you like hands-on projects like building furniture, laying tile, or designing physical spaces?",
+  //   "From 1-5. Do you enjoy building, repairing, or operating tools and equipment?",
+  //   "From 1-5. Are you curious about programming, using computers, or working with technology?",
+  //   "From 1-5. Do you prefer clerical tasks like sorting mail, keeping records, or proofreading documents?",
+  //   "From 1-5. Are you interested in doing science experiments or figuring out how things in nature work?",
+  //   "From 1-5. Do you like helping people solve emotional or personal problems?",
+  //   "From 1-5. Do you like managing a business, leading teams, or making important decisions?",
+  //   "From 1-5. Do you enjoy working with numbers, keeping records, or handling financial tasks?",
+  //   "From 1-5. Would you enjoy working in a laboratory setting doing medical or scientific testing?",
+  //   "From 1-5. Would you enjoy working outdoors, driving, or doing physical tasks like firefighting?",
+  //   "From 1-5. Do you like organizing inventory or working in retail or warehouse environments?",
+  //   "From 1-5. Are you interested in taking care of animals or protecting the environment?",
+  //   "From 1-5. Do you enjoy giving advice, mentoring others, or offering guidance on life or careers?",
+  //   "From 1-5. Do you like checking the quality of things or making sure products meet standards?"
   
   const [conversationHistory, setConversationHistory] = useState(() => {
     const saved = localStorage.getItem('chatbot-conversation-history');
@@ -60,6 +61,7 @@ function Chatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [typingMessage, setTypingMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -145,7 +147,8 @@ function Chatbot() {
               Item: {
                 id: userId,
                 timestamp: new Date().toISOString(),
-                riasecScores: { [letter]: score }
+                riasecScores: { [letter]: score },
+                score: ''
               }
             }));
           }
@@ -160,7 +163,45 @@ function Chatbot() {
         if (nextQuestion) {
           prompt += `Now respond to the user's last answer, then ask: "${nextQuestion}"`;
         } else {
+
           prompt += `Now respond to the user's last answer and wrap up the conversation. Suggest they explore programs at SRJC based on their interests.`;
+          
+          // Get final scores and calculate top 3 RIASEC code
+          try {
+            const result = await docClient.send(new GetCommand({
+              TableName: 'SRJCPathwaysResponses',
+              Key: { id: userId }
+            }));
+            
+            console.log('Retrieved data:', result.Item);
+            const scores = result.Item?.riasecScores || {};
+            console.log('Scores:', scores);
+            
+            const sortedScores = Object.entries(scores)
+              .map(([letter, value]) => [letter, typeof value === 'object' ? parseInt(value.N) : value])
+              .sort(([,a], [,b]) => b - a)
+              .slice(0, 3)
+              .map(([letter]) => letter)
+              .join('');
+            
+            console.log('Final RIASEC Code:', sortedScores);
+            
+            // Store the complete record with score
+            await docClient.send(new PutCommand({
+              TableName: 'SRJCPathwaysResponses',
+              Item: {
+                ...result.Item,
+                score: sortedScores,
+                timestamp: new Date().toISOString()
+              }
+            }));
+            
+            // alert('Score stored: ' + sortedScores);
+
+          } catch (dbError) {
+            console.error('Final score calculation error:', dbError);
+          }
+          
           setIsGuidedMode(false); // End guided mode
         }
       } else {
